@@ -1,9 +1,12 @@
 package com.example.myapplication.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,7 +34,12 @@ import com.example.myapplication.viewmodel.PlantViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantDashboardScreen(viewModel: PlantViewModel, onLogout: () -> Unit) {
+fun PlantDashboardScreen(
+    viewModel: PlantViewModel, 
+    isDarkMode: Boolean,
+    onThemeToggle: () -> Unit,
+    onLogout: () -> Unit
+) {
     val state by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
 
@@ -57,33 +65,64 @@ fun PlantDashboardScreen(viewModel: PlantViewModel, onLogout: () -> Unit) {
                     Text(if (state.lightLevel < 150f) "🌙 Buenas Noches" else "🌻 Jardín Vivo") 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
         bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Eco, contentDescription = "Inicio") },
-                    label = { Text("Inicio") },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Dashboard, contentDescription = "Sensores") },
-                    label = { Text("Sensores") },
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 }
-                )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-                    label = { Text("Perfil") },
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 }
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(32.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                    shadowElevation = 8.dp,
+                    tonalElevation = 8.dp
+                ) {
+                    val rowScrollState = rememberScrollState()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rowScrollState)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp), // Espaciado un poco más apretado
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        MinimalistNavItem(
+                            icon = Icons.Default.Eco, 
+                            isSelected = selectedTab == 0, 
+                            onClick = { selectedTab = 0 }
+                        )
+                        MinimalistNavItem(
+                            icon = Icons.Default.Dashboard, 
+                            isSelected = selectedTab == 1, 
+                            onClick = { selectedTab = 1 }
+                        )
+                        MinimalistNavItem(
+                            icon = Icons.Default.BarChart, 
+                            isSelected = selectedTab == 2, 
+                            onClick = { selectedTab = 2 }
+                        )
+                        MinimalistNavItem(
+                            icon = Icons.Default.Palette, 
+                            isSelected = selectedTab == 3, 
+                            onClick = { selectedTab = 3 }
+                        )
+                        MinimalistNavItem(
+                            icon = Icons.Default.Person, 
+                            isSelected = selectedTab == 4, 
+                            onClick = { selectedTab = 4 }
+                        )
+                    }
+                }
             }
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Box(
             modifier = Modifier
@@ -101,7 +140,18 @@ fun PlantDashboardScreen(viewModel: PlantViewModel, onLogout: () -> Unit) {
                     state = state,
                     viewModel = viewModel
                 )
-                2 -> ProfileTab(onLogout = onLogout)
+                2 -> StatsTab(state = state)
+                3 -> InventoryTab(state = state, viewModel = viewModel)
+                4 -> ProfileTab(
+                    isDarkMode = isDarkMode,
+                    onThemeToggle = onThemeToggle,
+                    onLogout = onLogout
+                )
+            }
+
+            // Overlay de Planta Muerta
+            if (state.isDead) {
+                DeadPlantOverlay(onReset = { viewModel.resetPlant() })
             }
 
             // Soft Twilight Night Mode Overlay
@@ -136,6 +186,7 @@ fun HomeTab(
             temperature = state.temperature,
             lightLevel = state.lightLevel,
             plantName = state.plantName,
+            equippedPot = state.equippedPot,
             onWaterClick = onWaterClick
         )
     }
@@ -284,13 +335,35 @@ fun SensorsTab(
                         valueRange = 0f..2000f
                     )
                 }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                
+                Text(
+                    text = "Simulación de Tiempo",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text("Días seguidos (Racha): ${state.happyDaysStreak}", fontSize = 14.sp)
+                
+                Button(
+                    onClick = { viewModel.advanceDay() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.FastForward, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Avanzar al siguiente día")
+                }
             }
         }
     }
 }
 
 @Composable
-fun ProfileTab(onLogout: () -> Unit) {
+fun ProfileTab(
+    isDarkMode: Boolean,
+    onThemeToggle: () -> Unit,
+    onLogout: () -> Unit
+) {
     val scrollState = rememberScrollState()
     Column(
         modifier = Modifier
@@ -332,6 +405,19 @@ fun ProfileTab(onLogout: () -> Unit) {
             
             ProfileSectionTitle("Preferencias")
             ProfileListItem(
+                icon = if (isDarkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
+                title = "Apariencia",
+                subtitle = if (isDarkMode) "Modo Oscuro activado" else "Modo Claro activado",
+                onClick = onThemeToggle,
+                trailingContent = {
+                    Switch(
+                        checked = isDarkMode,
+                        onCheckedChange = { onThemeToggle() },
+                        colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                    )
+                }
+            )
+            ProfileListItem(
                 icon = Icons.Default.Notifications,
                 title = "Notificaciones",
                 subtitle = "Configura alertas de riego y clima"
@@ -362,6 +448,136 @@ fun ProfileTab(onLogout: () -> Unit) {
 }
 
 @Composable
+fun StatsTab(state: com.example.myapplication.model.PlantState) {
+    val scrollState = rememberScrollState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Estadísticas del Jardín",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        // Tarjetas de Resumen
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatCard(
+                title = "Riegos Hoy",
+                value = "${state.wateringsToday}",
+                icon = Icons.Default.WaterDrop,
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Salud General",
+                value = "${state.healthScore}%",
+                icon = Icons.Default.Favorite,
+                modifier = Modifier.weight(1f)
+            )
+        }
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            StatCard(
+                title = "Racha Feliz",
+                value = "${state.happyDaysStreak} días",
+                icon = Icons.Default.LocalFireDepartment,
+                modifier = Modifier.weight(1f)
+            )
+            StatCard(
+                title = "Horas de Sol",
+                value = "${state.sunHoursToday} h",
+                icon = Icons.Default.WbSunny,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Gráfico Simulado (Humedad Semanal)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Humedad de Tierra (Últimos 7 días)",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    val days = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Hoy")
+                    state.historicalMoisture.forEachIndexed { index, moistureValue ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            // Barra del gráfico
+                            Box(
+                                modifier = Modifier
+                                    .width(24.dp)
+                                    .fillMaxHeight(moistureValue / 100f)
+                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                    .background(MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = days[index], fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatCard(
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                Text(text = title, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(text = value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
+
+@Composable
 fun ProfileSectionTitle(title: String) {
     Text(
         text = title,
@@ -374,7 +590,164 @@ fun ProfileSectionTitle(title: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileListItem(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit = {}) {
+fun InventoryTab(state: com.example.myapplication.model.PlantState, viewModel: PlantViewModel) {
+    val scrollState = rememberScrollState()
+
+    // El precio ahora representa los DÍAS DE RACHA necesarios para desbloquear
+    data class Cosmetic(val id: String, val name: String, val streakRequired: Int, val color: Color)
+    val availablePots = listOf(
+        Cosmetic("terrash", "Clásica Terracota", 0, Color(0xFFD35400)),
+        Cosmetic("ocean", "Azul Océano", 3, Color(0xFF2980B9)),
+        Cosmetic("gold", "Oro Real", 7, Color(0xFFF1C40F)),
+        Cosmetic("obsidian", "Obsidiana Dark", 14, Color(0xFF2C3E50))
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Estilos de Maceta",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                shape = RoundedCornerShape(50)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(Icons.Default.LocalFireDepartment, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(text = "${state.happyDaysStreak} Días", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        Text("Mantén a tu planta feliz varios días seguidos (Racha) para desbloquear nuevos colores de maceta. ¡Si dejas que se seque y se muera, tu racha volverá a 0!", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+        availablePots.forEach { pot ->
+            val isUnlocked = state.unlockedPots.contains(pot.id)
+            val isEquipped = state.equippedPot == pot.id
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Pot Preview
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(pot.color)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = pot.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        if (isUnlocked) {
+                            Text(text = "Desbloqueado", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "Requiere racha de ${pot.streakRequired} días", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+
+                    if (isEquipped) {
+                        OutlinedButton(onClick = { }, enabled = false) { Text("Equipado") }
+                    } else if (isUnlocked) {
+                        Button(onClick = { viewModel.equipPot(pot.id) }) { Text("Equipar") }
+                    } else {
+                        Button(
+                            onClick = { viewModel.buyPot(pot.id, pot.streakRequired) },
+                            enabled = state.happyDaysStreak >= pot.streakRequired,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                        ) {
+                            Text("Desbloquear")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeadPlantOverlay(onReset: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.85f))
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(64.dp)
+            )
+            Text(
+                text = "¡Tu planta se ha secado! 🥀",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                text = "La humedad de la tierra llegó a 0%. Has perdido tu racha de días y todos tus estilos desbloqueados.",
+                fontSize = 16.sp,
+                color = Color.LightGray,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onReset,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Text("Plantar nueva semilla (Reiniciar)", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileListItem(
+    icon: ImageVector, 
+    title: String, 
+    subtitle: String, 
+    onClick: () -> Unit = {},
+    trailingContent: @Composable () -> Unit = {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = "Ir",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -398,12 +771,35 @@ fun ProfileListItem(icon: ImageVector, title: String, subtitle: String, onClick:
                 Text(text = title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Text(text = subtitle, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Ir",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            trailingContent()
         }
+    }
+}
+
+@Composable
+fun MinimalistNavItem(icon: ImageVector, isSelected: Boolean, onClick: () -> Unit) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        label = "navBg"
+    )
+    val iconColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "navIcon"
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(12.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(28.dp)
+        )
     }
 }
 
@@ -414,6 +810,7 @@ fun PlantHappyFlowerCard(
     temperature: Float,
     lightLevel: Float,
     plantName: String,
+    equippedPot: String,
     onWaterClick: () -> Unit
 ) {
     val isNight = lightLevel < 150f
@@ -478,7 +875,8 @@ fun PlantHappyFlowerCard(
             HandDrawnFlowerCanvas(
                 soilMoisture = soilMoisture,
                 temperature = temperature,
-                lightLevel = lightLevel
+                lightLevel = lightLevel,
+                equippedPot = equippedPot
             )
 
             // Soil Moisture Progress
@@ -509,16 +907,28 @@ fun PlantHappyFlowerCard(
 fun HandDrawnFlowerCanvas(
     soilMoisture: Float,
     temperature: Float,
-    lightLevel: Float
+    lightLevel: Float,
+    equippedPot: String = "terrash"
 ) {
     val isThirsty = soilMoisture < 30f
     val isVeryDry = soilMoisture < 15f
     val isHot = temperature > 32f
     val isNight = lightLevel < 150f
 
-    // Colors
-    val potColor = Color(0xFFD35400) // Terracotta pot
-    val potRimColor = Color(0xFFE67E22)
+    // Colors mapping for pots
+    val potColor = when (equippedPot) {
+        "ocean" -> Color(0xFF2980B9)
+        "gold" -> Color(0xFFF1C40F)
+        "obsidian" -> Color(0xFF2C3E50)
+        else -> Color(0xFFD35400) // terrash
+    }
+    
+    val potRimColor = when (equippedPot) {
+        "ocean" -> Color(0xFF3498DB)
+        "gold" -> Color(0xFFF39C12)
+        "obsidian" -> Color(0xFF34495E)
+        else -> Color(0xFFE67E22)
+    }
     val stemColor = Color(0xFF27AE60)
     val healthyPetalColor = if (isNight) Color(0xFF9B59B6) else Color(0xFFFF6B6B)
     val thirstyPetalColor = Color(0xFF95A5A6)

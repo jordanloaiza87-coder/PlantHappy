@@ -66,8 +66,11 @@ class MainActivity : ComponentActivity() {
             )
             
             val state by viewModel.uiState.collectAsState()
+            
+            // Dark mode preference
+            var isDarkMode by remember { mutableStateOf(prefs.getBoolean("is_dark_mode", false)) }
 
-            MyApplicationTheme(isWaterLow = state.isWaterLow) {
+            MyApplicationTheme(isWaterLow = state.isWaterLow, darkTheme = isDarkMode) {
                 if (showSplash) {
                     FlowerLoadingScreen(
                         onLoadingFinished = { showSplash = false }
@@ -93,6 +96,11 @@ class MainActivity : ComponentActivity() {
                 } else {
                     PlantDashboardScreen(
                         viewModel = viewModel,
+                        isDarkMode = isDarkMode,
+                        onThemeToggle = { 
+                            isDarkMode = !isDarkMode
+                            prefs.edit().putBoolean("is_dark_mode", isDarkMode).apply()
+                        },
                         onLogout = {
                             prefs.edit().putBoolean("is_logged_in", false).apply()
                             isLoggedIn = false
