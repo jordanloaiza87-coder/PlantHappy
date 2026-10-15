@@ -33,20 +33,26 @@ enum class AuthRoute { LOGIN, REGISTER, RECOVERY }
 fun AuthCoordinator(onAuthSuccess: () -> Unit) {
     var currentRoute by remember { mutableStateOf(AuthRoute.LOGIN) }
 
-    Crossfade(targetState = currentRoute, label = "AuthScreens") { route ->
-        when (route) {
-            AuthRoute.LOGIN -> LoginScreen(
-                onLoginSuccess = onAuthSuccess,
-                onNavigateToRegister = { currentRoute = AuthRoute.REGISTER },
-                onNavigateToRecovery = { currentRoute = AuthRoute.RECOVERY }
-            )
-            AuthRoute.REGISTER -> RegisterScreen(
-                onRegisterSuccess = onAuthSuccess,
-                onNavigateToLogin = { currentRoute = AuthRoute.LOGIN }
-            )
-            AuthRoute.RECOVERY -> RecoveryScreen(
-                onBackToLogin = { currentRoute = AuthRoute.LOGIN }
-            )
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground
+    ) {
+        Crossfade(targetState = currentRoute, label = "AuthScreens") { route ->
+            when (route) {
+                AuthRoute.LOGIN -> LoginScreen(
+                    onLoginSuccess = onAuthSuccess,
+                    onNavigateToRegister = { currentRoute = AuthRoute.REGISTER },
+                    onNavigateToRecovery = { currentRoute = AuthRoute.RECOVERY }
+                )
+                AuthRoute.REGISTER -> RegisterScreen(
+                    onRegisterSuccess = onAuthSuccess,
+                    onNavigateToLogin = { currentRoute = AuthRoute.LOGIN }
+                )
+                AuthRoute.RECOVERY -> RecoveryScreen(
+                    onBackToLogin = { currentRoute = AuthRoute.LOGIN }
+                )
+            }
         }
     }
 }
@@ -79,7 +85,8 @@ fun LoginScreen(
         Text(
             text = "Inicia sesión para continuar cuidando tu jardín",
             fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
         )
@@ -87,9 +94,17 @@ fun LoginScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+            label = { Text("Correo electrónico", fontWeight = FontWeight.Medium) },
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -99,25 +114,34 @@ fun LoginScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            label = { Text("Contraseña", fontWeight = FontWeight.Medium) },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Alternar visibilidad"
+                        contentDescription = "Alternar visibilidad",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
 
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
             TextButton(onClick = onNavigateToRecovery) {
-                Text("¿Olvidaste tu contraseña?")
+                Text("¿Olvidaste tu contraseña?", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -128,7 +152,8 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
         ) {
             Text("Iniciar Sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
@@ -137,7 +162,7 @@ fun LoginScreen(
         
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             HorizontalDivider(modifier = Modifier.weight(1f))
-            Text(" O continuar con ", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+            Text(" O continuar con ", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             HorizontalDivider(modifier = Modifier.weight(1f))
         }
 
@@ -149,9 +174,10 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
         ) {
-            Text("Continuar con Google", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text("Continuar con Google", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -161,17 +187,18 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
         ) {
-            Text("Continuar con Apple", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
+            Text("Continuar con Apple", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("¿No tienes una cuenta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("¿No tienes una cuenta?", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
             TextButton(onClick = onNavigateToRegister) {
-                Text("Regístrate", fontWeight = FontWeight.Bold)
+                Text("Regístrate", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -206,8 +233,16 @@ fun RegisterScreen(
         OutlinedTextField(
             value = name,
             onValueChange = { name = it },
-            label = { Text("Nombre completo") },
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+            label = { Text("Nombre completo", fontWeight = FontWeight.Medium) },
+            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -217,9 +252,17 @@ fun RegisterScreen(
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Correo electrónico") },
-            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+            label = { Text("Correo electrónico", fontWeight = FontWeight.Medium) },
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -229,18 +272,27 @@ fun RegisterScreen(
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Contraseña") },
-            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            label = { Text("Contraseña", fontWeight = FontWeight.Medium) },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = "Alternar visibilidad"
+                        contentDescription = "Alternar visibilidad",
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            ),
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -252,7 +304,8 @@ fun RegisterScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            shape = RoundedCornerShape(8.dp)
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary)
         ) {
             Text("Registrarse", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
@@ -260,9 +313,9 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("¿Ya tienes una cuenta?", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("¿Ya tienes una cuenta?", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp)
             TextButton(onClick = onNavigateToLogin) {
-                Text("Inicia sesión", fontWeight = FontWeight.Bold)
+                Text("Inicia sesión", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
