@@ -52,7 +52,9 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             var showSplash by remember { mutableStateOf(true) }
-            var showOnboarding by remember { mutableStateOf(!prefs.getBoolean("has_seen_onboarding", false)) }
+            
+            // Para la presentación al profesor, siempre iniciamos mostrando el Onboarding (no guarda que ya se vio)
+            var showOnboarding by remember { mutableStateOf(true) }
             var isLoggedIn by remember { mutableStateOf(prefs.getBoolean("is_logged_in", false)) }
             
             // Proveemos el NotificationManager al ViewModel
@@ -75,22 +77,17 @@ class MainActivity : ComponentActivity() {
                     FlowerLoadingScreen(
                         onLoadingFinished = { showSplash = false }
                     )
+                } else if (showOnboarding) {
+                    OnboardingScreen(
+                        onFinished = {
+                            showOnboarding = false
+                        }
+                    )
                 } else if (!isLoggedIn) {
                     AuthCoordinator(
                         onAuthSuccess = {
                             prefs.edit().putBoolean("is_logged_in", true).apply()
                             isLoggedIn = true
-                            
-                            // Hacemos que el Onboarding SIEMPRE aparezca después de iniciar sesión
-                            prefs.edit().putBoolean("has_seen_onboarding", false).apply()
-                            showOnboarding = true
-                        }
-                    )
-                } else if (showOnboarding) {
-                    OnboardingScreen(
-                        onFinished = {
-                            prefs.edit().putBoolean("has_seen_onboarding", true).apply()
-                            showOnboarding = false
                         }
                     )
                 } else {
@@ -104,10 +101,6 @@ class MainActivity : ComponentActivity() {
                         onLogout = {
                             prefs.edit().putBoolean("is_logged_in", false).apply()
                             isLoggedIn = false
-                            
-                            // Reiniciamos el estado para el próximo inicio de sesión
-                            prefs.edit().putBoolean("has_seen_onboarding", false).apply()
-                            showOnboarding = true
                         }
                     )
                 }
