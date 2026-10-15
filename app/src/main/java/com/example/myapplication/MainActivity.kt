@@ -51,11 +51,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            // Para la presentación al profesor, siempre forzamos el flujo completo:
+            // 1. Splash -> 2. Onboarding -> 3. Login -> 4. Dashboard
             var showSplash by remember { mutableStateOf(true) }
-            
-            // Para la presentación al profesor, siempre iniciamos mostrando el Onboarding (no guarda que ya se vio)
             var showOnboarding by remember { mutableStateOf(true) }
-            var isLoggedIn by remember { mutableStateOf(prefs.getBoolean("is_logged_in", false)) }
+            var isLoggedIn by remember { mutableStateOf(false) }
             
             // Proveemos el NotificationManager al ViewModel
             val notificationManager = remember { PlantNotificationManager(context) }
