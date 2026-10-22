@@ -38,8 +38,8 @@ import com.example.myapplication.ui.HandDrawnFlowerCanvas
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.viewmodel.PlantViewModel
 import com.example.myapplication.notification.PlantNotificationManager
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 
 class MainActivity : ComponentActivity() {
 
@@ -60,9 +60,9 @@ class MainActivity : ComponentActivity() {
             // Proveemos el NotificationManager al ViewModel
             val notificationManager = remember { PlantNotificationManager(context) }
             val viewModel: PlantViewModel = viewModel(
-                factory = object : ViewModelProvider.Factory {
-                    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                        return PlantViewModel(notificationManager) as T
+                factory = viewModelFactory {
+                    initializer {
+                        PlantViewModel(notificationManager)
                     }
                 }
             )
