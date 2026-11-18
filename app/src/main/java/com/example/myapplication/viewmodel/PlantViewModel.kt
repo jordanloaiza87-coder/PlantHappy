@@ -8,16 +8,81 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 import com.example.myapplication.notification.PlantNotificationManager
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 class PlantViewModel(private val notificationManager: PlantNotificationManager? = null) : ViewModel() {
     private val _uiState = MutableStateFlow(PlantState())
     val uiState: StateFlow<PlantState> = _uiState.asStateFlow()
 
     private var lastEmotionReported: PlantNotificationManager.EmotionState? = null
+    
+    // Referencia al nodo "sensores" en Firebase Realtime Database
+    private val databaseRef = FirebaseDatabase.getInstance().getReference("sensores")
 
     init {
-        // Initial check sin emitir notificación
+        // Inicializamos con un estado base
         updateSoilMoistureInternal(45f)
+        
+        // Empezamos a escuchar los cambios en tiempo real desde Firebase (Arduino Wemos)
+        startListeningToFirebase()
+    }
+
+    private fun startListeningToFirebase() {
+        databaseRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                // Obtenemos los valores de la nube (con fallbacks a los actuales si algo falla)
+                val current = _uiState.value
+                val humedadTierra = snapshot.child("humedadTierra").getValue(Float::class.java) ?: current.soilMoisture
+                val temperatura = snapshot.child("temperatura").getValue(Float::class.java) ?: current.temperature
+                val humedadAmbiente = snapshot.child("humedadAmbiente").getValue(Float::class.java) ?: current.airHumidity
+                val luz = snapshot.child("luz").getValue(Float::class.java) ?: current.lightLevel
+
+                // Actualizamos todos los datos de golpe en la interfaz
+                updateAllSensorsFromFirebase(humedadTierra, temperatura, humedadAmbiente, luz)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                // Manejo de errores de conexión o permisos
+                println("Error leyendo Firebase: ${error.message}")
+            }
+        })
+    }
+    
+    private fun updateAllSensorsFromFirebase(
+        humedadTierra: Float,
+        temp: Float,
+        humedadAmb: Float,
+        luz: Float
+    ) {
+        _uiState.update { current ->
+            if (current.isDead && humedadTierra > 0f) return@update current // Sigue muerta
+            
+            val isLow = humedadTierra < 30f
+            val isDead = humedadTierra <= 0f
+            
+            val envStatus = when {
+                temp < 15f -> "Demasiado Frío"
+                temp > 32f -> "Demasiado Caliente"
+                else -> "Óptimo"
+            }
+
+            current.copy(
+                soilMoisture = humedadTierra,
+                isWaterLow = isLow,
+                isDead = isDead,
+                temperature = temp,
+                airHumidity = humedadAmb,
+                lightLevel = luz,
+                environmentStatus = envStatus,
+                recommendations = generateRecommendations(isLow, temp, humedadAmb, luz)
+            )
+        }
+        
+        // Evaluamos si debemos lanzar una notificación push al usuario
+        checkAndSendNotification()
     }
 
     private fun updateSoilMoistureInternal(value: Float) {
