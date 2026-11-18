@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "197030556469",
+    "firebase_url": "https://arduino-de-agua-default-rtdb.firebaseio.com",
+    "project_id": "arduino-de-agua",
+    "storage_bucket": "arduino-de-agua.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:197030556469:android:3e489da0dac02bc85ed27c",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcPYlaO9o6y2t3taLPNNuYisQ5BeTs9TY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
