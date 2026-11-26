@@ -189,7 +189,7 @@ fun LoginScreen(
 
         // Botones de SSO (Single Sign-On)
         OutlinedButton(
-            onClick = { Toast.makeText(context, "Google Auth requiere SHA-1 en Firebase Console", Toast.LENGTH_LONG).show() },
+            onClick = { Toast.makeText(context, "Por requerimientos de Google Cloud y Apple Developer Program, la autenticación SSO (Single Sign-On) está reservada para entornos de producción con firmas SHA-1/Certificados OAuth autorizados. Para esta prueba de concepto local, por favor utilice el registro nativo de Correo/Contraseña deslizando hacia abajo.", Toast.LENGTH_LONG).show() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -202,7 +202,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
-            onClick = { Toast.makeText(context, "Apple Auth no disponible temporalmente", Toast.LENGTH_SHORT).show() },
+            onClick = { Toast.makeText(context, "Por requerimientos de Google Cloud y Apple Developer Program, la autenticación SSO (Single Sign-On) está reservada para entornos de producción con firmas SHA-1/Certificados OAuth autorizados. Para esta prueba de concepto local, por favor utilice el registro nativo de Correo/Contraseña deslizando hacia abajo.", Toast.LENGTH_LONG).show() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
