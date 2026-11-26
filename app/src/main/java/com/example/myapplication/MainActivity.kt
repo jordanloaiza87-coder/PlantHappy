@@ -38,6 +38,7 @@ import com.example.myapplication.ui.HandDrawnFlowerCanvas
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import com.example.myapplication.viewmodel.PlantViewModel
 import com.example.myapplication.notification.PlantNotificationManager
+import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 
@@ -51,11 +52,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            val auth = FirebaseAuth.getInstance()
             // Para la presentación al profesor, siempre forzamos el flujo completo:
             // 1. Splash -> 2. Onboarding -> 3. Login -> 4. Dashboard
             var showSplash by remember { mutableStateOf(true) }
             var showOnboarding by remember { mutableStateOf(true) }
-            var isLoggedIn by remember { mutableStateOf(false) }
+            var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
             
             // Proveemos el NotificationManager al ViewModel
             val notificationManager = remember { PlantNotificationManager(context) }
@@ -99,7 +101,7 @@ class MainActivity : ComponentActivity() {
                             prefs.edit().putBoolean("is_dark_mode", isDarkMode).apply()
                         },
                         onLogout = {
-                            prefs.edit().putBoolean("is_logged_in", false).apply()
+                            auth.signOut()
                             isLoggedIn = false
                         }
                     )

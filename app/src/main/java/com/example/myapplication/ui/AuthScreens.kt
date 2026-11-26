@@ -26,6 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 
 enum class AuthRoute { LOGIN, REGISTER, RECOVERY }
 
@@ -147,8 +150,24 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        val context = LocalContext.current
+        val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+
         Button(
-            onClick = onLoginSuccess,
+            onClick = {
+                if (email.isNotBlank() && password.isNotBlank()) {
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                onLoginSuccess()
+                            } else {
+                                Toast.makeText(context, "Error al iniciar sesión: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                } else {
+                    Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -170,7 +189,7 @@ fun LoginScreen(
 
         // Botones de SSO (Single Sign-On)
         OutlinedButton(
-            onClick = onLoginSuccess, // Simulación
+            onClick = { Toast.makeText(context, "Google Auth requiere SHA-1 en Firebase Console", Toast.LENGTH_LONG).show() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -183,7 +202,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(12.dp))
 
         OutlinedButton(
-            onClick = onLoginSuccess, // Simulación
+            onClick = { Toast.makeText(context, "Apple Auth no disponible temporalmente", Toast.LENGTH_SHORT).show() },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -299,8 +318,30 @@ fun RegisterScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        val context = LocalContext.current
+        val auth = FirebaseAuth.getInstance()
+
         Button(
-            onClick = onRegisterSuccess,
+            onClick = {
+                if (email.isNotBlank() && password.isNotBlank()) {
+                    auth.createUserWithEmailAndPassword(email, password)
+                        .addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                // Opcional: Actualizar el perfil con el nombre
+                                val profileUpdates = com.google.firebase.auth.UserProfileChangeRequest.Builder()
+                                    .setDisplayName(name)
+                                    .build()
+                                task.result?.user?.updateProfile(profileUpdates)?.addOnCompleteListener {
+                                    onRegisterSuccess()
+                                } ?: onRegisterSuccess()
+                            } else {
+                                Toast.makeText(context, "Error al registrarse: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                } else {
+                    Toast.makeText(context, "Por favor completa todos los campos", Toast.LENGTH_SHORT).show()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -375,6 +416,9 @@ fun RecoveryScreen(onBackToLogin: () -> Unit) {
                 }
             }
         } else {
+            val context = LocalContext.current
+            val auth = FirebaseAuth.getInstance()
+            
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -388,12 +432,21 @@ fun RecoveryScreen(onBackToLogin: () -> Unit) {
             Spacer(modifier = Modifier.height(24.dp))
 
             Button(
-                onClick = { 
-                    emailSent = true 
-                    // Simular flujo sin fricción, devolviendo al login tras 4 segundos
-                    coroutineScope.launch {
-                        delay(4000)
-                        onBackToLogin()
+                onClick = {
+                    if (email.isNotBlank()) {
+                        auth.sendPasswordResetEmail(email)
+                            .addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    emailSent = true 
+                                    // Simular flujo sin fricción, devolviendo al login tras 4 segundos
+                                    coroutineScope.launch {
+                                        delay(4000)
+                                        onBackToLogin()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
                     }
                 },
                 modifier = Modifier

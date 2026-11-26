@@ -365,6 +365,12 @@ fun ProfileTab(
     onLogout: () -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+    val user = auth.currentUser
+    
+    val displayName = user?.displayName?.takeIf { it.isNotBlank() } ?: "Amante de las plantas"
+    val email = user?.email ?: "Sin correo registrado"
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -380,12 +386,12 @@ fun ProfileTab(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Mi Perfil",
+            text = displayName,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Amante de las plantas",
+            text = email,
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
